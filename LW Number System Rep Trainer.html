@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nashville Number Rep Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12141C; --panel:#1A1F2E; --line:#2A3042;
+    --text:#F2F1ED; --muted:#8B90A6; --gold:#E8B33D; --violet:#4A5178;
+    --serif:'Fraunces', Georgia, serif; --sans:'Public Sans', -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#F4F2ED; --panel:#FFFFFF; --line:#DDD8CC;
+      --text:#1A1A1A; --muted:#6B6B6B; --gold:#B8811F; --violet:#C9C2E8;
+    }
+  }
+  :root[data-theme="dark"]{ --bg:#12141C; --panel:#1A1F2E; }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+    min-height:100%;
+  }
+  .wrap{ max-width:920px; margin:0 auto; padding:32px 24px 48px; }
+  h1{
+    font-family:var(--serif); font-weight:600; font-size:28px; letter-spacing:-0.01em;
+    margin:0 0 6px;
+  }
+  .sub{ color:var(--muted); font-size:15px; margin:0 0 32px; max-width:56ch; line-height:1.5; }
+  .grid{ display:grid; grid-template-columns:260px 1fr; gap:28px; }
+  @media (max-width:680px){ .grid{ grid-template-columns:1fr; } }
+
+  .panel{ border:1px solid var(--line); border-radius:10px; padding:22px; background:var(--panel); }
+  .field{ margin-bottom:18px; }
+  .field:last-child{ margin-bottom:0; }
+  label{ display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+  select, input[type=range]{ width:100%; }
+  select{
+    appearance:none; background:transparent; color:var(--text); border:1px solid var(--line);
+    border-radius:6px; padding:9px 10px; font-family:var(--sans); font-size:14px;
+  }
+  select:focus, button:focus, input:focus{ outline:2px solid var(--gold); outline-offset:2px; }
+  .row{ display:flex; justify-content:space-between; align-items:baseline; }
+  .row .val{ font-variant-numeric:tabular-nums; color:var(--text); font-size:13px; }
+  .toggle{ display:flex; align-items:center; gap:10px; cursor:pointer; }
+  .toggle input{ width:16px; height:16px; }
+  .toggle span{ font-size:14px; color:var(--text); }
+
+  .stage{
+    border:1px solid var(--line); border-radius:10px; padding:32px 28px; background:var(--panel);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:340px; position:relative;
+  }
+  .keylabel{ color:var(--muted); font-size:13px; margin-bottom:18px; }
+  .chordnum{
+    font-family:var(--serif); font-weight:600; font-size:96px; line-height:1; color:var(--gold);
+    transition:opacity .12s ease;
+  }
+  .chordname{ font-size:22px; color:var(--text); margin-top:8px; }
+  .dots{ display:flex; gap:10px; margin-top:26px; }
+  .dot{ width:10px; height:10px; border-radius:50%; background:var(--violet); transition:background .15s, transform .15s; }
+  .dot.active{ background:var(--gold); transform:scale(1.25); }
+  .next{ color:var(--muted); font-size:14px; margin-top:22px; min-height:20px; }
+  .beat{ width:8px; height:8px; border-radius:50%; background:var(--line); position:absolute; top:20px; right:22px; }
+  .beat.on{ background:var(--gold); }
+
+  .pianoBlock{ margin-top:26px; display:none; flex-direction:column; align-items:center; }
+  .pianoCaption{ font-size:12px; color:var(--muted); margin-top:10px; text-align:center; }
+
+  .controls{ margin-top:24px; display:flex; gap:12px; }
+  button.primary{
+    font-family:var(--sans); font-weight:600; font-size:15px; padding:12px 22px; border-radius:8px;
+    border:none; background:var(--gold); color:#12141C; cursor:pointer;
+  }
+  button.primary:active{ transform:translateY(1px); }
+  button.ghost{
+    font-family:var(--sans); font-size:14px; padding:12px 16px; border-radius:8px;
+    border:1px solid var(--line); background:transparent; color:var(--text); cursor:pointer;
+  }
+  .note{ color:var(--muted); font-size:13px; margin-top:28px; line-height:1.6; max-width:60ch; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Nashville number rep trainer</h1>
+  <p class="sub">Drill common praise &amp; worship progressions in the keys you'll actually lead in. Pick a key and a progression, set the tempo, and call your own changes before the band does.</p>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="field">
+        <label for="key">Key</label>
+        <select id="key"></select>
+      </div>
+      <div class="field">
+        <label for="prog">Progression</label>
+        <select id="prog"></select>
+      </div>
+      <div class="field">
+        <div class="row"><label for="tempo">Tempo</label><span class="val" id="tempoVal">80 bpm</span></div>
+        <input type="range" id="tempo" min="50" max="140" value="80">
+      </div>
+      <div class="field">
+        <div class="row"><label for="beats">Beats per chord</label><span class="val" id="beatsVal">4</span></div>
+        <input type="range" id="beats" min="1" max="8" value="4">
+      </div>
+      <div class="field">
+        <label class="toggle">
+          <input type="checkbox" id="metroToggle">
+          <span>Metronome click</span>
+        </label>
+      </div>
+      <div class="field">
+        <div class="row"><label for="metroVol">Click volume</label><span class="val" id="metroVolVal">60%</span></div>
+        <input type="range" id="metroVol" min="0" max="100" value="60">
+      </div>
+      <div class="field">
+        <label class="toggle">
+          <input type="checkbox" id="showKeyboard">
+          <span>Show keyboard diagram</span>
+        </label>
+      </div>
+      <div class="field">
+        <label class="toggle">
+          <input type="checkbox" id="randomKey">
+          <span>New key each loop</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="beat" id="beatDot"></div>
+      <div class="keylabel" id="keyLabel">Key of G</div>
+      <div class="chordnum" id="chordNum">1</div>
+      <div class="chordname" id="chordName">G</div>
+      <div class="dots" id="dots"></div>
+      <div class="next" id="nextLabel">next: 5 &middot; D</div>
+      <div class="pianoBlock" id="pianoBlock">
+        <div id="pianoWrap"></div>
+        <div class="pianoCaption">Root &middot; 3rd &middot; 5th, with typical right-hand fingering (1&ndash;3&ndash;5)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="primary" id="startStop">Start</button>
+    <button class="ghost" id="skip">Skip to next chord</button>
+  </div>
+
+  <p class="note">Degrees follow standard major-key harmony (1 and 4 and 5 major, 2 and 3 and 6 minor, 7 diminished). "New key each loop" reshuffles the key every time the progression repeats, so you can practice transposing on the fly the way a leader calling an audible would. The metronome accents the first beat of every chord so you can hear the measure, and the keyboard diagram updates live with each chord change.</p>
+</div>
+
+<script>
+const SCALES = {
+  "C":["C","Dm","Em","F","G","Am","B°"],
+  "Db":["Db","Ebm","Fm","Gb","Ab","Bbm","C°"],
+  "D":["D","Em","F#m","G","A","Bm","C#°"],
+  "Eb":["Eb","Fm","Gm","Ab","Bb","Cm","D°"],
+  "E":["E","F#m","G#m","A","B","C#m","D#°"],
+  "F":["F","Gm","Am","Bb","C","Dm","E°"],
+  "F#":["F#","G#m","A#m","B","C#","D#m","E#°"],
+  "G":["G","Am","Bm","C","D","Em","F#°"],
+  "Ab":["Ab","Bbm","Cm","Db","Eb","Fm","G°"],
+  "A":["A","Bm","C#m","D","E","F#m","G#°"],
+  "Bb":["Bb","Cm","Dm","Eb","F","Gm","A°"],
+  "B":["B","C#m","D#m","E","F#","G#m","A#°"]
+};
+const KEY_ORDER = ["C","Db","D","Eb","E","F","F#","G","Ab","A","Bb","B"];
+const WORSHIP_KEYS = ["G","A","D","E","C","F","Bb","Eb"];
+
+const PROGRESSIONS = [
+  {name:"1 – 5 – 6 – 4  (anthem lift)", degrees:[1,5,6,4]},
+  {name:"6 – 4 – 1 – 5  (verse build)", degrees:[6,4,1,5]},
+  {name:"1 – 4 – 6 – 5", degrees:[1,4,6,5]},
+  {name:"4 – 1 – 5 – 6", degrees:[4,1,5,6]},
+  {name:"1 – 6 – 4 – 5  (fifties turn)", degrees:[1,6,4,5]},
+  {name:"6 – 5 – 4 – 1  (descending)", degrees:[6,5,4,1]},
+  {name:"1 – 4 – 1 – 5", degrees:[1,4,1,5]},
+  {name:"1 – 4 – 2 – 5", degrees:[1,4,2,5]},
+  {name:"1 – 5 – 4 – 6", degrees:[1,5,4,6]}
+];
+
+const NOTE_PC = {C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
+const INTERVALS = {maj:[0,4,7], min:[0,3,7], dim:[0,3,6]};
+const WHITE_PCS = [0,2,4,5,7,9,11];
+const BLACK_PCS = [1,3,6,8,10];
+const BLACK_BEFORE = [0,1,3,4,5];
+
+const keySel = document.getElementById('key');
+const progSel = document.getElementById('prog');
+const tempoInput = document.getElementById('tempo');
+const beatsInput = document.getElementById('beats');
+const randomKeyBox = document.getElementById('randomKey');
+const metroToggle = document.getElementById('metroToggle');
+const metroVol = document.getElementById('metroVol');
+const metroVolVal = document.getElementById('metroVolVal');
+const showKeyboardBox = document.getElementById('showKeyboard');
+const pianoBlock = document.getElementById('pianoBlock');
+const startStopBtn = document.getElementById('startStop');
+const skipBtn = document.getElementById('skip');
+
+KEY_ORDER.forEach(k=>{
+  const opt = document.createElement('option');
+  opt.value = k;
+  opt.textContent = WORSHIP_KEYS.includes(k) ? `Key of ${k}` : `Key of ${k} (less common)`;
+  keySel.appendChild(opt);
+});
+keySel.value = "G";
+
+PROGRESSIONS.forEach((p,i)=>{
+  const opt = document.createElement('option');
+  opt.value = i;
+  opt.textContent = p.name;
+  progSel.appendChild(opt);
+});
+
+const dotsWrap = document.getElementById('dots');
+const chordNumEl = document.getElementById('chordNum');
+const chordNameEl = document.getElementById('chordName');
+const keyLabelEl = document.getElementById('keyLabel');
+const nextLabelEl = document.getElementById('nextLabel');
+const beatDot = document.getElementById('beatDot');
+
+let timer = null;
+let beatCount = 0;
+let chordIndex = 0;
+let currentKey = keySel.value;
+let audioCtx = null;
+
+function chordFor(key, degree){
+  return SCALES[key][degree-1];
+}
+
+function renderDots(progression){
+  dotsWrap.innerHTML = '';
+  progression.forEach(()=>{
+    const d = document.createElement('div');
+    d.className = 'dot';
+    dotsWrap.appendChild(d);
+  });
+}
+
+function parseChord(ch){
+  if(ch.endsWith('°')) return {root:ch.slice(0,-1), quality:'dim'};
+  if(ch.endsWith('m')) return {root:ch.slice(0,-1), quality:'min'};
+  return {root:ch, quality:'maj'};
+}
+
+function renderPiano(chordName){
+  const {root, quality} = parseChord(chordName);
+  const rootPc = NOTE_PC[root];
+  const ivs = INTERVALS[quality];
+  const fingerLabels = [1,3,5];
+  const fingerFor = {};
+  ivs.forEach((iv,idx)=>{ fingerFor[(rootPc+iv)%12] = fingerLabels[idx]; });
+
+  const keyW = 46, keyH = 130, blackW = 28, blackH = 82;
+  const totalW = keyW*7;
+  let svg = `<svg viewBox="0 0 ${totalW} ${keyH+6}" width="100%" style="max-width:340px">`;
+  WHITE_PCS.forEach((pc,i)=>{
+    const x = i*keyW;
+    const hi = fingerFor[pc];
+    svg += `<rect x="${x}" y="0" width="${keyW-2}" height="${keyH}" rx="4" fill="${hi? '#E8B33D':'#F4F2ED'}" stroke="#2A3042" stroke-width="1.5"/>`;
+    if(hi){
+      svg += `<text x="${x+keyW/2-1}" y="${keyH-16}" text-anchor="middle" font-size="15" font-family="Public Sans, sans-serif" font-weight="600" fill="#12141C">${hi}</text>`;
+    }
+  });
+  BLACK_PCS.forEach((pc,j)=>{
+    const wi = BLACK_BEFORE[j];
+    const x = (wi+1)*keyW - blackW/2;
+    const hi = fingerFor[pc];
+    svg += `<rect x="${x}" y="0" width="${blackW}" height="${blackH}" rx="3" fill="${hi? '#E8B33D':'#12141C'}" stroke="#12141C" stroke-width="1"/>`;
+    if(hi){
+      svg += `<text x="${x+blackW/2}" y="${blackH-12}" text-anchor="middle" font-size="12" font-family="Public Sans, sans-serif" font-weight="600" fill="#12141C">${hi}</text>`;
+    }
+  });
+  svg += `</svg>`;
+  document.getElementById('pianoWrap').innerHTML = svg;
+}
+
+function updateDisplay(){
+  const progression = PROGRESSIONS[progSel.value].degrees;
+  const degree = progression[chordIndex];
+  const nextDegree = progression[(chordIndex+1) % progression.length];
+  const chordName = chordFor(currentKey, degree);
+  keyLabelEl.textContent = `Key of ${currentKey}`;
+  chordNumEl.textContent = degree;
+  chordNameEl.textContent = chordName;
+  nextLabelEl.textContent = `next: ${nextDegree} · ${chordFor(currentKey, nextDegree)}`;
+  [...dotsWrap.children].forEach((d,i)=>d.classList.toggle('active', i===chordIndex));
+  if(showKeyboardBox.checked) renderPiano(chordName);
+}
+
+function pickRandomKey(){
+  currentKey = WORSHIP_KEYS[Math.floor(Math.random()*WORSHIP_KEYS.length)];
+}
+
+function ensureAudio(){
+  if(!audioCtx){ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+  if(audioCtx.state === 'suspended'){ audioCtx.resume(); }
+}
+
+function playClick(accent){
+  if(!metroToggle.checked) return;
+  ensureAudio();
+  const vol = parseInt(metroVol.value, 10) / 100;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.frequency.value = accent ? 1400 : 900;
+  const now = audioCtx.currentTime;
+  const peak = Math.max(vol * 0.6, 0.0001);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(peak, now + 0.002);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(now); osc.stop(now + 0.06);
+}
+
+function tick(){
+  const beatsPerChord = parseInt(beatsInput.value, 10);
+  if(beatCount >= beatsPerChord){
+    beatCount = 0;
+    const progression = PROGRESSIONS[progSel.value].degrees;
+    const wasLastChord = chordIndex === progression.length - 1;
+    chordIndex = (chordIndex + 1) % progression.length;
+    if(wasLastChord && randomKeyBox.checked){
+      pickRandomKey();
+    }
+    updateDisplay();
+  }
+  const isDownbeat = beatCount === 0;
+  playClick(isDownbeat);
+  beatDot.classList.add('on');
+  setTimeout(()=>beatDot.classList.remove('on'), 120);
+  beatCount++;
+}
+
+function start(){
+  ensureAudio();
+  chordIndex = 0; beatCount = 0;
+  currentKey = randomKeyBox.checked ? WORSHIP_KEYS[Math.floor(Math.random()*WORSHIP_KEYS.length)] : keySel.value;
+  renderDots(PROGRESSIONS[progSel.value].degrees);
+  updateDisplay();
+  const bpm = parseInt(tempoInput.value, 10);
+  timer = setInterval(tick, 60000 / bpm);
+  startStopBtn.textContent = 'Stop';
+  keySel.disabled = randomKeyBox.checked ? true : false;
+}
+
+function stop(){
+  clearInterval(timer); timer = null;
+  startStopBtn.textContent = 'Start';
+  keySel.disabled = false;
+}
+
+startStopBtn.addEventListener('click', ()=>{
+  if(timer){ stop(); } else { start(); }
+});
+skipBtn.addEventListener('click', ()=>{
+  const progression = PROGRESSIONS[progSel.value].degrees;
+  chordIndex = (chordIndex + 1) % progression.length;
+  beatCount = 0;
+  if(chordIndex === 0 && randomKeyBox.checked) pickRandomKey();
+  if(!timer){ currentKey = randomKeyBox.checked ? currentKey : keySel.value; }
+  renderDots(progression);
+  updateDisplay();
+});
+tempoInput.addEventListener('input', ()=>{
+  document.getElementById('tempoVal').textContent = `${tempoInput.value} bpm`;
+  if(timer){ clearInterval(timer); timer = setInterval(tick, 60000/parseInt(tempoInput.value,10)); }
+});
+beatsInput.addEventListener('input', ()=>{
+  document.getElementById('beatsVal').textContent = beatsInput.value;
+});
+metroVol.addEventListener('input', ()=>{
+  metroVolVal.textContent = metroVol.value + '%';
+});
+showKeyboardBox.addEventListener('change', ()=>{
+  pianoBlock.style.display = showKeyboardBox.checked ? 'flex' : 'none';
+  if(showKeyboardBox.checked) renderPiano(chordNameEl.textContent);
+});
+keySel.addEventListener('change', ()=>{
+  currentKey = keySel.value;
+  updateDisplay();
+});
+progSel.addEventListener('change', ()=>{
+  chordIndex = 0; beatCount = 0;
+  renderDots(PROGRESSIONS[progSel.value].degrees);
+  updateDisplay();
+});
+
+renderDots(PROGRESSIONS[0].degrees);
+updateDisplay();
+</script>
+</body>
+</html>
